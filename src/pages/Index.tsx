@@ -1,22 +1,40 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import UrlInput from "@/components/UrlInput";
 import DownloadCard from "@/components/DownloadCard";
-import { downloadVideo, type DownloadResult } from "@/services/downloadService";
-import { Instagram, Youtube } from "lucide-react";
+import { downloadVideo, mockDownloadVideo, type DownloadResult } from "@/services/downloadService";
+import { Instagram, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { TikTok } from "@/components/Icons";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DownloadResult | null>(null);
+  const [isDev, setIsDev] = useState(false);
+  const [apiConfigured, setApiConfigured] = useState(true);
+
+  // Check if we're in development mode and if the API endpoint is configured
+  useEffect(() => {
+    // Check if we're in development mode
+    setIsDev(import.meta.env.DEV === true);
+    
+    // Check if API endpoint is configured
+    const apiUrl = import.meta.env.VITE_DOWNLOAD_API_URL;
+    setApiConfigured(!!apiUrl);
+  }, []);
 
   const handleSubmit = async (url: string, platform: string) => {
     setIsLoading(true);
     setResult(null);
     
     try {
-      const downloadResult = await downloadVideo(url, platform);
+      // Use mock service in development mode if API is not configured
+      const downloadResult = (!apiConfigured && isDev) 
+        ? await mockDownloadVideo(url, platform) 
+        : await downloadVideo(url, platform);
+        
       setResult(downloadResult);
     } catch (error) {
       toast.error("Failed to process video");
@@ -37,6 +55,26 @@ const Index = () => {
             Download videos from Instagram and TikTok with just a link
           </p>
         </div>
+
+        {(!apiConfigured && !isDev) && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>API Not Configured</AlertTitle>
+            <AlertDescription>
+              The API endpoint is not configured. Please set the VITE_DOWNLOAD_API_URL environment variable.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {(isDev && !apiConfigured) && (
+          <Alert className="mb-6 bg-amber-50 border-amber-200">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertTitle>Development Mode</AlertTitle>
+            <AlertDescription>
+              Running in development mode with mock data. Set VITE_DOWNLOAD_API_URL for real API calls.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="w-full shadow-xl">
           <CardHeader>
@@ -80,7 +118,7 @@ const Index = () => {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2 mb-2">
-                <Youtube className="h-5 w-5 text-red-500" />
+                <TikTok className="h-5 w-5" />
                 <h3 className="font-semibold">TikTok</h3>
               </div>
               <p className="text-sm text-muted-foreground">
@@ -91,7 +129,7 @@ const Index = () => {
         </div>
         
         <div className="text-center mt-12 text-white text-sm opacity-80">
-          <p>Note: This is a demo application. In a real implementation, downloading would require a backend service.</p>
+          <p>Note: This application is for personal use only. Please respect copyright and terms of service.</p>
         </div>
       </div>
     </div>
